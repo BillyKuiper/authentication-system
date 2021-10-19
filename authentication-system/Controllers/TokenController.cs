@@ -18,9 +18,7 @@ namespace authentication_system.Controllers
         private const string SECRET_KEY = "this is my custom Secret key for authnetication";
         public static readonly SymmetricSecurityKey SIGNING_KEY = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TokenController.SECRET_KEY));
 
-        [HttpGet]
-        [Route("api/Token/{username}/{password}")]
-        public IActionResult Get(string username, string password)
+        public object CreateToken(string username, string password)
         {
             if(username != password)
             {
@@ -98,6 +96,12 @@ namespace authentication_system.Controllers
                 string jsonToken = newToken.ToString();
                 return jsonToken;
             }
+        }
+
+        public string nonExistentToken(string email, string password)
+        {
+            var x = GenerateToken(email, password);
+            return x.ToString();
         }
     }
 }
