@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using System.IdentityModel.Tokens;
 using Microsoft.IdentityModel.Tokens;
 using authentication_system.Controllers;
+using System.Text;
 
 namespace authentication_system
 {
@@ -45,7 +46,7 @@ namespace authentication_system
                     IssuerSigningKey = TokenController.SIGNING_KEY,
                     ValidateIssuer = false,
                     ValidateAudience = false,
-                    ValidateIssuerSigningKey = true,
+                    ValidateIssuerSigningKey = false,
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.FromMinutes(5)
                 };
@@ -76,13 +77,13 @@ namespace authentication_system
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
             });
-            app.UseAuthentication();
         }
     }
 }

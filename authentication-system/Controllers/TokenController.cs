@@ -18,11 +18,11 @@ namespace authentication_system.Controllers
         private const string SECRET_KEY = "this is my custom Secret key for authnetication";
         public static readonly SymmetricSecurityKey SIGNING_KEY = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TokenController.SECRET_KEY));
 
-        public object CreateToken(string username, string password)
+        public object CreateToken(string username)
         {
-            if(username != password)
+            if(username != null)
             {
-                return new ObjectResult(GenerateToken(username, password));
+                return new ObjectResult(GenerateToken(username));
             }
             else
             {
@@ -30,16 +30,15 @@ namespace authentication_system.Controllers
             }
         }
 
-        private object GenerateToken(string username, string password)
+        private object GenerateToken(string email)
         {
             var token = new JwtSecurityToken(
                 claims: new Claim[]
                 {
-                    new Claim("Name", username),
-                    new Claim("password", password)
+                    new Claim("email", email)
                 },
-                notBefore: new DateTimeOffset(DateTime.Now).DateTime,
-                expires: new DateTimeOffset(DateTime.Now.AddMinutes(60)).DateTime,
+                notBefore: DateTime.Now,
+                expires: DateTime.Now.AddMinutes(60),
                 signingCredentials: new SigningCredentials(SIGNING_KEY, SecurityAlgorithms.HmacSha256)
                 );
 
@@ -63,16 +62,17 @@ namespace authentication_system.Controllers
 
         public string isExpired(string test)
         {
-            string[] split = test.Split(" ");
+            //string[] split = test.Split(" ");
 
-            var token = split[1];
+            //var token = split[1];
             var handler = new JwtSecurityTokenHandler();
-            var jwtSecurityToken = handler.ReadJwtToken(token);
+            var jwtSecurityToken = handler.ReadJwtToken(test);
 
-            if (jwtSecurityToken.ValidFrom > DateTime.UtcNow && jwtSecurityToken.ValidTo < DateTime.UtcNow)
-            {
+            if (jwtSecurityToken.ValidFrom > DateTime.Now.AddHours(-3) && jwtSecurityToken.ValidTo < DateTime.Now.AddHours(-1))
+            { 
                 //is valid
-                return split[1];
+                //return split[1];
+                return test;
             }
             else
             {
@@ -82,25 +82,21 @@ namespace authentication_system.Controllers
 
                 foreach (Claim c in jwtSecurityToken.Claims)
                 {
-                    if (c.Type == "Name")
+                    if (c.Type == "email")
                     {
-                        u.name = c.Value;
-                    }
-                    if (c.Type == "password")
-                    {
-                        u.password = c.Value;
+                        u.email = c.Value;
                     }
                 }
                 //Newly generated token when old token was expired
-                object newToken = GenerateToken(u.name, u.password);
+                object newToken = GenerateToken(u.email);
                 string jsonToken = newToken.ToString();
                 return jsonToken;
             }
         }
 
-        public string nonExistentToken(string email, string password)
+        public string nonExistentToken(string email)
         {
-            var x = GenerateToken(email, password);
+            var x = GenerateToken(email);
             return x.ToString();
         }
     }

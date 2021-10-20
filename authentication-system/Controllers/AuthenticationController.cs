@@ -23,72 +23,43 @@ namespace authentication_system.Controllers
         }
 
         [Route("/[controller]/login")]
-        [HttpGet]
-        public string login([FromHeader]string Authorization, [FromBody]User mainUser)
+        [HttpPost]
+        public string login([FromHeader]string Authorization, [FromBody]User u)
         {
-            if(Authorization == null)
-            {
-                loginNoToken(mainUser.email, mainUser.password);
-            }
-            string validToken = TC.isExpired(Authorization);
-            List<Claim> x = TC.readOut(validToken);
-            User u = new User();
+            string validToken;
 
-            foreach (Claim c in x)
-            {
-                if (c.Type == "Name")
-                {
-                    u.name = c.Value;
-                }
-                if (c.Type == "password")
-                {
-                    u.password = c.Value;
-                }
-            }
-
+            //check if exists
             var user = from User in db.Users
-                       where User.name == u.name && User.password == u.password
+                       where User.email == u.email && User.password == u.password
                        select User;
 
             string json = JsonConvert.SerializeObject(user);
 
-            if(json == "[]")
+            if (json == "[]")
             {
-                return "400";
+                return "Niet gevonden";
             }
-            return json;
+            else
+            {
+                //wel gevonden valideren 
+                // goed gevalideerd, auto login dus geen token terug gegeven
+                if (Authorization == "null" || Authorization == null)
+                {
+                    validToken = loginNoToken(u.email, u.password);
+                }
+                else
+                {
+                    validToken = TC.isExpired(Authorization);
+                }
+                return validToken;
+            }
         }
 
         public string loginNoToken(string email, string password)
         {
-            string validToken = TC.nonExistentToken(email, password);
-            List<Claim> x = TC.readOut(validToken);
-            User u = new User();
-
-            foreach (Claim c in x)
-            {
-                if (c.Type == "Name")
-                {
-                    u.name = c.Value;
-                }
-                if (c.Type == "password")
-                {
-                    u.password = c.Value;
-                }
-            }
-
-            var user = from User in db.Users
-                       where User.name == u.name && User.password == u.password
-                       select User;
-
-            string json = JsonConvert.SerializeObject(user);
-            //ToDo: Random Object maken met user en token gegevens
-            if (json == "[]")
-            {
-                return "400";
-            }
-            return json;
-            //always return token
+            string validToken = TC.nonExistentToken(email);
+          
+            return validToken;
         }
 
         [Route("/[controller]/register")]
@@ -102,24 +73,39 @@ namespace authentication_system.Controllers
             else
             {
                 //ToDo: check if inserted data already exitst in database
-                //If not excute the following code:
-                var x =  TC.CreateToken(u.name, u.password);
-                System.Reflection.PropertyInfo pi = x.GetType().GetProperty("Value");
-                string token = (String)pi.GetValue(x, null);
-                if(token != null)
+                var user = from User in db.Users
+                           where User.email == u.email && User.password == u.password
+                           select User;
+
+                string json = JsonConvert.SerializeObject(user);
+
+                if (json == "[]")
                 {
-                    db.Users.Add(u);
-                    db.SaveChanges();
-                    return token;
+                    var x = TC.CreateToken(u.email);
+                    System.Reflection.PropertyInfo pi = x.GetType().GetProperty("Value");
+                    string token = (String)pi.GetValue(x, null);
+                    if (token != null)
+                    {
+                        db.Users.Add(u);
+                        db.SaveChanges();
+                        return token;
+                    }
+                    return "400";
                 }
-                return "400";
+                else
+                {
+                    return "Gebruiker bestaat al";
+                }
             }
          
         }
 
-        public void expireRedirect()
+        [Authorize]
+        [HttpGet]
+        [Route("/[controller]/auth")]
+        public string authorize()
         {
-            
+            return "huts";
         }
     }
 }
